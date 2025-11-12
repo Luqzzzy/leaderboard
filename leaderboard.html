@@ -1,0 +1,367 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Core Value Leaderboard – Spotlight + LEGO + Tooltips (White Background)</title>
+  <style>
+    :root{
+      /* Layout tokens */
+      --axis-width: 84px;
+      --logo-size: 116px;
+      --header-height: calc(var(--logo-size) + 106px);
+      --cell-min-h: 110px;
+      --card-bg: #ffffff;
+      --text: #0f172a;
+      --muted: #64748b;
+      --avatar-size: 76px;
+      --gap: 14px;
+
+      /* Banner (multi-blue gradient) */
+      --banner-fg: #ffffff;
+      --grad1: #001a4d; /* darker blue */
+      --grad2: #003a8c; /* mid blue */
+      --grad3: #0059b3; /* lighter blue */
+      /* spotlight position (px) – set by JS */
+      --mxpx: 50%;
+      --mypx: 50%;
+
+      /* Core value colors (rings & tooltips) */
+      --ring-obsession:   #2563eb; /* blue */
+      --ring-pride:       #e11d48; /* rose/red */
+      --ring-simplicity:  #f97316; /* orange */
+      --ring-speed:       #db2777; /* pink */
+      --ring-think:       #7c3aed; /* violet */
+      --ring-delight:     #eab308; /* amber */
+
+      --tooltip-fg: #ffffff;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    /* === Full white page background === */
+    body{ margin:0; background:#ffffff; color:var(--text); font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,Noto Sans; }
+
+    .h1{ font-size: clamp(22px, 2.6vw, 34px); }
+    .page{ padding: clamp(10px, 2vw, 24px); }
+
+    /* ===== Gradient banner with BRIGHTER, TIGHTER spotlight (no hard circle) ===== */
+    .kv-banner{ position: relative; width: 100%; color: var(--banner-fg); background: linear-gradient(135deg, var(--grad1) 0%, var(--grad2) 50%, var(--grad3) 100%); overflow: hidden; }
+    .kv-banner::before{
+      content:""; position:absolute; left: var(--mxpx); top: var(--mypx); transform: translate(-50%, -50%);
+      width:  min(48vw, 900px);    /* tighter */
+      height: min(32vh, 420px);    /* tighter */
+      border-radius: 50%;
+      background: radial-gradient(ellipse at center,
+        rgba(255,255,255,0.26) 0%,
+        rgba(255,255,255,0.16) 38%,
+        rgba(255,255,255,0.08) 58%,
+        rgba(255,255,255,0.00) 78%);
+      filter: blur(48px);          /* slightly less blur -> feels brighter */
+      mix-blend-mode: screen;      /* gentle lightening */
+      pointer-events: none; z-index: 0;
+      transition: left .05s linear, top .05s linear;
+    }
+    .kv-banner-inner{ position:relative; z-index:1; max-width:1600px; margin:0 auto; padding: clamp(12px, 2.2vw, 22px) clamp(12px, 2vw, 24px); display:flex; align-items:center; justify-content:center; }
+    .kv-banner h1{ margin:0; color:var(--banner-fg); font-weight:900; letter-spacing:.02em; line-height:1.15; text-shadow: 0 2px 0 #000, 0 6px 18px rgba(0,0,0,.45); }
+
+    /* ===== Leaderboard card ===== */
+    .board{ background: var(--card-bg); border-radius: 14px; box-shadow: 0 1px 3px rgb(2 6 23 / 8%), 0 1px 2px rgb(2 6 23 / 6%); overflow: hidden; }
+    .scroll-x{ overflow-x: auto; }
+    .content{ min-width: 900px; }
+
+    /* === White header row, no dividing line === */
+    .header-row{ display:grid; align-items:center; column-gap: var(--gap); grid-template-columns: var(--axis-width) repeat(6, minmax(120px, 1fr)); padding:12px; height: var(--header-height); background:#ffffff; border-bottom:none; position: sticky; top: 0; z-index:1; }
+    .axis-title{ font-weight:700; font-size:13px; color:#000; text-transform:uppercase; letter-spacing:.06em; display:flex; align-items:center; justify-content:center; }
+
+    .logo-wrap{ position:relative; display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; text-align:center; }
+    .logo-title-top{ font-weight:800; letter-spacing:.02em; margin-bottom:10px; line-height:1.15; font-size: clamp(13px, 1.4vw, 16px); }
+
+    /* Column title color + black shadow */
+    .col-obsession  .logo-title-top{ color: var(--ring-obsession);  text-shadow: 0 1px 0 #000, 0 2px 6px rgba(0,0,0,.6); }
+    .col-pride      .logo-title-top{ color: var(--ring-pride);      text-shadow: 0 1px 0 #000, 0 2px 6px rgba(0,0,0,.6); }
+    .col-simplicity .logo-title-top{ color: var(--ring-simplicity); text-shadow: 0 1px 0 #000, 0 2px 6px rgba(0,0,0,.6); }
+    .col-speed      .logo-title-top{ color: var(--ring-speed);      text-shadow: 0 1px 0 #000, 0 2px 6px rgba(0,0,0,.6); }
+    .col-think      .logo-title-top{ color: var(--ring-think);      text-shadow: 0 1px 0 #000, 0 2px 6px rgba(0,0,0,.6); }
+    .col-delight    .logo-title-top{ color: var(--ring-delight);    text-shadow: 0 1px 0 #000, 0 2px 6px rgba(0,0,0,.6); }
+
+    .logo{ width: var(--logo-size); height: var(--logo-size); object-fit:contain; border-radius:50%; background:#fff; border:3px solid #fff; position:relative; z-index:0; box-shadow:0 4px 14px rgb(2 6 23 / 18%); }
+    .col-obsession .logo{ box-shadow: 0 0 0 3px var(--ring-obsession), 0 4px 14px rgb(2 6 23 / 18%); }
+    .col-pride     .logo{ box-shadow: 0 0 0 3px var(--ring-pride),     0 4px 14px rgb(2 6 23 / 18%); }
+    .col-simplicity .logo{ box-shadow: 0 0 0 3px var(--ring-simplicity), 0 4px 14px rgb(2 6 23 / 18%); }
+    .col-speed     .logo{ box-shadow: 0 0 0 3px var(--ring-speed),     0 4px 14px rgb(2 6 23 / 18%); }
+    .col-think     .logo{ box-shadow: 0 0 0 3px var(--ring-think),     0 4px 14px rgb(2 6 23 / 18%); }
+    .col-delight   .logo{ box-shadow: 0 0 0 3px var(--ring-delight),   0 4px 14px rgb(2 6 23 / 18%); }
+
+    /* === Body: pure white background, no grid lines === */
+    .body{ position:relative; display:grid; grid-template-columns: var(--axis-width) repeat(6, minmax(120px, 1fr)); grid-template-rows: repeat(5, minmax(var(--cell-min-h), 1fr)); column-gap: var(--gap); row-gap:0; padding:0 12px 12px 12px; min-height: calc(5 * var(--cell-min-h)); background:#ffffff; }
+    .rank{ display:flex; align-items:center; justify-content:center; font-weight:700; font-size: clamp(14px, 1.8vw, 18px); color:#1f2937; }
+    .cell{ display:flex; align-items:center; justify-content:center; }
+
+    /* Person cell */
+    .person{ display:flex; flex-direction:column; align-items:center; gap:8px; }
+    .avatar{ width: var(--avatar-size); height: var(--avatar-size); border-radius:50%; object-fit:cover; background:#fff; border:2px solid #fff; position:relative; z-index:0; box-shadow:0 1px 3px rgba(2,6,23,.18); }
+
+    /* LEGO avatar in every ring */
+    .avatar{ object-fit: cover; }
+
+    /* Colored rings per core (avatars) */
+    .c-obsession  .avatar{ box-shadow: 0 0 0 3px var(--ring-obsession), 0 1px 3px rgba(2,6,23,.18); }
+    .c-pride      .avatar{ box-shadow: 0 0 0 3px var(--ring-pride),     0 1px 3px rgba(2,6,23,.18); }
+    .c-simplicity .avatar{ box-shadow: 0 0 0 3px var(--ring-simplicity), 0 1px 3px rgba(2,6,23,.18); }
+    .c-speed      .avatar{ box-shadow: 0 0 0 3px var(--ring-speed),     0 1px 3px rgba(2,6,23,.18); }
+    .c-think      .avatar{ box-shadow: 0 0 0 3px var(--ring-think),     0 1px 3px rgba(2,6,23,.18); }
+    .c-delight    .avatar{ box-shadow: 0 0 0 3px var(--ring-delight),   0 1px 3px rgba(2,6,23,.18); }
+
+    .name{ font-size: clamp(11px, 1.3vw, 13px); color: var(--muted); white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+
+    /* ===== Tooltips (hover descriptions) – base ===== */
+    .logo-wrap[data-desc]::after, .logo-wrap[data-desc]::before{ opacity:0; transition: opacity .15s ease-in-out; }
+    .logo-wrap[data-desc]:hover::after, .logo-wrap[data-desc]:focus-within::after,
+    .logo-wrap[data-desc]:hover::before, .logo-wrap[data-desc]:focus-within::before{ opacity:1; }
+
+    .logo-wrap[data-desc]::after{
+      content: attr(data-desc);
+      position:absolute; left:50%; transform:translateX(-50%); bottom:-6px;
+      width:max(180px,min(24ch,300px)); padding:10px 12px; color:#fff;
+      border-radius:8px; font-size:12px; line-height:1.35;
+      box-shadow:0 8px 20px rgba(2,6,23,.25); z-index:2; pointer-events:none; white-space:normal;
+      text-shadow:0 1px 1px rgba(0,0,0,.35);
+    }
+    .logo-wrap[data-desc]::before{
+      content:""; position:absolute; left:50%; transform:translateX(-50%);
+      bottom: calc(-6px + 100% - var(--logo-size));
+      border:8px solid transparent; z-index:2; pointer-events:none;
+    }
+
+    /* ===== Tooltips – color-match to core value (SAME-ELEMENT selectors!) ===== */
+    .logo-wrap.col-obsession[data-desc]::after  { background: var(--ring-obsession); }
+    .logo-wrap.col-obsession[data-desc]::before { border-top-color: var(--ring-obsession); }
+
+    .logo-wrap.col-pride[data-desc]::after      { background: var(--ring-pride); }
+    .logo-wrap.col-pride[data-desc]::before     { border-top-color: var(--ring-pride); }
+
+    .logo-wrap.col-simplicity[data-desc]::after { background: var(--ring-simplicity); }
+    .logo-wrap.col-simplicity[data-desc]::before{ border-top-color: var(--ring-simplicity); }
+
+    .logo-wrap.col-speed[data-desc]::after      { background: var(--ring-speed); }
+    .logo-wrap.col-speed[data-desc]::before     { border-top-color: var(--ring-speed); }
+
+    .logo-wrap.col-think[data-desc]::after      { background: var(--ring-think); }
+    .logo-wrap.col-think[data-desc]::before     { border-top-color: var(--ring-think); }
+
+    .logo-wrap.col-delight[data-desc]::after    { background: var(--ring-delight); }
+    .logo-wrap.col-delight[data-desc]::before   { border-top-color: var(--ring-delight); }
+
+    /* ===== Reveal wrapper ===== */
+    .reveal-wrapper{ opacity:0; transform:translateY(16px); transition: opacity .35s ease, transform .35s ease; pointer-events:none; }
+    .reveal-wrapper.show{ opacity:1; transform:none; pointer-events:auto; }
+
+    /* ===== Responsive tuning ===== */
+    @media (max-width: 1200px){
+      :root{ --logo-size: 100px; --avatar-size: 70px; --axis-width: 72px; --gap: 12px; --header-height: calc(var(--logo-size) + 92px); }
+      .content{ min-width: 820px; }
+    }
+    @media (max-width: 900px){
+      :root{ --logo-size: 88px; --avatar-size: 62px; --axis-width: 64px; --gap: 10px; --header-height: calc(var(--logo-size) + 86px); }
+      .content{ min-width: 720px; }
+      .logo-title-top{ margin-bottom: 8px; }
+    }
+    @media (max-width: 720px){
+      :root{ --logo-size: 76px; --avatar-size: 56px; --axis-width: 56px; --gap: 8px; --header-height: calc(var(--logo-size) + 80px); }
+      .content{ min-width: 620px; }
+      .axis-title{ font-size: 12px; }
+    }
+    @media (max-width: 640px){
+      :root{ --logo-size: 70px; --avatar-size: 52px; --axis-width: 52px; --gap: 8px; --header-height: calc(var(--logo-size) + 78px); }
+      .content{ min-width: 560px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div id="reveal" class="reveal-wrapper">
+    <!-- Banner -->
+    <div class="kv-banner" id="kv-banner" role="banner" aria-label="Core Value Leaderboard">
+      <div class="kv-banner-inner">
+        <h1 class="h1">Core Value Leaderboard</h1>
+      </div>
+    </div>
+
+    <!-- Leaderboard -->
+    <div class="page">
+      <div class="board scroll-x">
+        <div class="content">
+          <!-- Header logos + column titles with descriptions -->
+          <div class="header-row">
+            <div class="axis-title">Rank</div>
+
+            <div class="logo-wrap col-obsession" data-desc="We start with the customer and work backwards—deeply understanding needs and earning trust.">
+              <div class="logo-title-top">Obsession</div>
+              <img class="logo" src="https://luqzzzy.github.io/tiles/obsession.png" alt="Obsession"/>
+            </div>
+
+            <div class="logo-wrap col-pride" data-desc="We take ownership, act with integrity, and deliver work we’re proud to sign our names to.">
+              <div class="logo-title-top">Pride in Purpose</div>
+              <img class="logo" src="https://luqzzzy.github.io/tiles/prideinpurpose.png" alt="Pride in Purpose"/>
+            </div>
+
+            <div class="logo-wrap col-simplicity" data-desc="We simplify to amplify—reduce complexity, make it clear, and focus on what matters most.">
+              <div class="logo-title-top">Simplicity</div>
+              <img class="logo" src="https://luqzzzy.github.io/tiles/Simplicity.png" alt="Simplicity"/>
+            </div>
+
+            <div class="logo-wrap col-speed" data-desc="We move with urgency and bias for action—shipping value fast, learning, and iterating.">
+              <div class="logo-title-top">Speed</div>
+              <img class="logo" src="https://luqzzzy.github.io/tiles/Speed.png" alt="Speed"/>
+            </div>
+
+            <div class="logo-wrap col-think" data-desc="We challenge limits and think bigger—seeking bold ideas and scalable impact.">
+              <div class="logo-title-top">Think Bigger</div>
+              <img class="logo" src="https://luqzzzy.github.io/tiles/Thinkbigger.png" alt="Think Bigger"/>
+            </div>
+
+            <div class="logo-wrap col-delight" data-desc="We sweat the details to delight users—creating experiences that feel effortless and joyful.">
+              <div class="logo-title-top">User Delight</div>
+              <img class="logo" src="https://luqzzzy.github.io/tiles/Userdelight.png" alt="User Delight"/>
+            </div>
+          </div>
+
+          <!-- Grid cells (5 ranks x 6 cores) with LEGO avatars -->
+          <div class="body" id="grid">
+            <!-- Rank 1 -->
+            <div class="rank">1</div>
+            <div class="cell c-obsession"  data-core="Obsession"        data-rank="1"><div class="person"><img class="avatar" src="https://luqzzzy.github.io/tiles/lego.png" alt="Obsession – #1"/><span class="name"></span></div></div>
+            <div class="cell c-pride"      data-core="Pride in Purpose" data-rank="1"><div class="person"><img class="avatar" src="https://luqzzzy.github.io/tiles/lego.png" alt="Pride in Purpose – #1"/><span class="name"></span></div></div>
+            <div class="cell c-simplicity" data-core="Simplicity"       data-rank="1"><div class="person"><img class="avatar" src="https://luqzzzy.github.io/tiles/lego.png" alt="Simplicity – #1"/><span class="name"></span></div></div>
+            <div class="cell c-speed"      data-core="Speed"            data-rank="1"><div class="person"><img class="avatar" src="https://luqzzzy.github.io/tiles/lego.png" alt="Speed – #1"/><span class="name"></span></div></div>
+            <div class="cell c-think"      data-core="Think Bigger"     data-rank="1"><div class="person"><img class="avatar" src="https://luqzzzy.github.io/tiles/lego.png" alt="Think Bigger – #1"/><span class="name"></span></div></div>
+            <div class="cell c-delight"    data-core="User Delight"     data-rank="1"><div class="person"><img class="avatar" src="https://luqzzzy.github.io/tiles/lego.png" alt="User Delight – #1"/><span class="name"></span></div></div>
+
+            <!-- Rank 2 -->
+            <div class="rank">2</div>
+            <div class="cell c-obsession"  data-core="Obsession"        data-rank="2"><div class="person"><img class="avatar" src="https://luqzzzy.github.io/tiles/lego.png" alt="Obsession – #2"/><span class="name"></span></div></div>
+            <div class="cell c-pride"      data-core="Pride in Purpose" data-rank="2"><div class="person"><img class="avatar" src="https://luqzzzy.github.io/tiles/lego.png" alt="Pride in Purpose – #2"/><span class="name"></span></div></div>
+            <div class="cell c-simplicity" data-core="Simplicity"       data-rank="2"><div class="person"><img class="avatar" src="https://luqzzzy.github.io/tiles/lego.png" alt="Simplicity – #2"/><span class="name"></span></div></div>
+            <div class="cell c-speed"      data-core="Speed"            data-rank="2"><div class="person"><img class="avatar" src="https://luqzzzy.github.io/tiles/lego.png" alt="Speed – #2"/><span class="name"></span></div></div>
+            <div class="cell c-think"      data-core="Think Bigger"     data-rank="2"><div class="person"><img class="avatar" src="https://luqzzzy.github.io/tiles/lego.png" alt="Think Bigger – #2"/><span class="name"></span></div></div>
+            <div class="cell c-delight"    data-core="User Delight"     data-rank="2"><div class="person"><img class="avatar" src="https://luqzzzy.github.io/tiles/lego.png" alt="User Delight – #2"/><span class="name"></span></div></div>
+
+            <!-- Rank 3 -->
+            <div class="rank">3</div>
+            <div class="cell c-obsession"  data-core="Obsession"        data-rank="3"><div class="person"><img class="avatar" src="https://luqzzzy.github.io/tiles/lego.png" alt="Obsession – #3"/><span class="name"></span></div></div>
+            <div class="cell c-pride"      data-core="Pride in Purpose" data-rank="3"><div class="person"><img class="avatar" src="https://luqzzzy.github.io/tiles/lego.png" alt="Pride in Purpose – #3"/><span class="name"></span></div></div>
+            <div class="cell c-simplicity" data-core="Simplicity"       data-rank="3"><div class="person"><img class="avatar" src="https://luqzzzy.github.io/tiles/lego.png" alt="Simplicity – #3"/><span class="name"></span></div></div>
+            <div class="cell c-speed"      data-core="Speed"            data-rank="3"><div class="person"><img class="avatar" src="https://luqzzzy.github.io/tiles/lego.png" alt="Speed – #3"/><span class="name"></span></div></div>
+            <div class="cell c-think"      data-core="Think Bigger"     data-rank="3"><div class="person"><img class="avatar" src="https://luqzzzy.github.io/tiles/lego.png" alt="Think Bigger – #3"/><span class="name"></span></div></div>
+            <div class="cell c-delight"    data-core="User Delight"     data-rank="3"><div class="person"><img class="avatar" src="https://luqzzzy.github.io/tiles/lego.png" alt="User Delight – #3"/><span class="name"></span></div></div>
+
+            <!-- Rank 4 -->
+            <div class="rank">4</div>
+            <div class="cell c-obsession"  data-core="Obsession"        data-rank="4"><div class="person"><img class="avatar" src="https://luqzzzy.github.io/tiles/lego.png" alt="Obsession – #4"/><span class="name"></span></div></div>
+            <div class="cell c-pride"      data-core="Pride in Purpose" data-rank="4"><div class="person"><img class="avatar" src="https://luqzzzy.github.io/tiles/lego.png" alt="Pride in Purpose – #4"/><span class="name"></span></div></div>
+            <div class="cell c-simplicity" data-core="Simplicity"       data-rank="4"><div class="person"><img class="avatar" src="https://luqzzzy.github.io/tiles/lego.png" alt="Simplicity – #4"/><span class="name"></span></div></div>
+            <div class="cell c-speed"      data-core="Speed"            data-rank="4"><div class="person"><img class="avatar" src="https://luqzzzy.github.io/tiles/lego.png" alt="Speed – #4"/><span class="name"></span></div></div>
+            <div class="cell c-think"      data-core="Think Bigger"     data-rank="4"><div class="person"><img class="avatar" src="https://luqzzzy.github.io/tiles/lego.png" alt="Think Bigger – #4"/><span class="name"></span></div></div>
+            <div class="cell c-delight"    data-core="User Delight"     data-rank="4"><div class="person"><img class="avatar" src="https://luqzzzy.github.io/tiles/lego.png" alt="User Delight – #4"/><span class="name"></span></div></div>
+
+            <!-- Rank 5 -->
+            <div class="rank">5</div>
+            <div class="cell c-obsession"  data-core="Obsession"        data-rank="5"><div class="person"><img class="avatar" src="https://luqzzzy.github.io/tiles/lego.png" alt="Obsession – #5"/><span class="name"></span></div></div>
+            <div class="cell c-pride"      data-core="Pride in Purpose" data-rank="5"><div class="person"><img class="avatar" src="https://luqzzzy.github.io/tiles/lego.png" alt="Pride in Purpose – #5"/><span class="name"></span></div></div>
+            <div class="cell c-simplicity" data-core="Simplicity"       data-rank="5"><div class="person"><img class="avatar" src="https://luqzzzy.github.io/tiles/lego.png" alt="Simplicity – #5"/><span class="name"></span></div></div>
+            <div class="cell c-speed"      data-core="Speed"            data-rank="5"><div class="person"><img class="avatar" src="https://luqzzzy.github.io/tiles/lego.png" alt="Speed – #5"/><span class="name"></span></div></div>
+            <div class="cell c-think"      data-core="Think Bigger"     data-rank="5"><div class="person"><img class="avatar" src="https://luqzzzy.github.io/tiles/lego.png" alt="Think Bigger – #5"/><span class="name"></span></div></div>
+            <div class="cell c-delight"    data-core="User Delight"     data-rank="5"><div class="person"><img class="avatar" src="https://luqzzzy.github.io/tiles/lego.png" alt="User Delight – #5"/><span class="name"></span></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* ===== Wide, subtle spotlight (brighter & tighter) that follows mouse/touch ===== */
+    (function bannerSpotlight(){
+      const banner = document.getElementById('kv-banner');
+      if(!banner) return;
+      function setVars(x, y){
+        const rect = banner.getBoundingClientRect();
+        banner.style.setProperty('--mxpx', (x - rect.left) + 'px');
+        banner.style.setProperty('--mypx', (y - rect.top)  + 'px');
+      }
+      banner.addEventListener('mousemove', (e)=> setVars(e.clientX, e.clientY));
+      banner.addEventListener('touchmove', (e)=>{ const t = e.touches[0]; if(t) setVars(t.clientX, t.clientY); }, { passive:true });
+      const r = banner.getBoundingClientRect(); setVars(r.left + r.width/2, r.top + r.height/2);
+    })();
+
+    /* ===== Reveal on scroll (with no-scroll fallback to avoid white screen) ===== */
+    (function revealOnScroll(){
+      const el = document.getElementById('reveal'); if(!el) return;
+      function show(){ el.classList.add('show'); }
+      const canScroll = (document.documentElement.scrollHeight - window.innerHeight) > 1;
+      if(!canScroll){ show(); return; }
+      if('IntersectionObserver' in window){
+        const io = new IntersectionObserver(entries => { entries.forEach(e => { if(e.isIntersecting){ show(); io.disconnect(); } }); }, { threshold:0.01 });
+        io.observe(el);
+      }else{
+        const onScroll = () => { if(window.scrollY > 50){ show(); window.removeEventListener('scroll', onScroll); } };
+        window.addEventListener('scroll', onScroll, { passive:true });
+        onScroll();
+      }
+    })();
+
+    /* ===== SharePoint REST – names only (LEGO avatars remain) ===== */
+    const CONFIG = {
+      siteRelativeUrl: (window._spPageContextInfo && _spPageContextInfo.webServerRelativeUrl) || '/sites/StingrayIntranet',
+      listTitle: 'Core Values Leaderboard',
+      fields: { core:'CoreValue', rank:'Rank', name:'PersonName', personLookup:'Nominee' },
+      coreValues: ['Obsession','Pride in Purpose','Simplicity','Speed','Think Bigger','User Delight']
+    };
+
+    async function fetchItems(){
+      const url = `${CONFIG.siteRelativeUrl}/_api/web/lists/GetByTitle('${encodeURIComponent(CONFIG.listTitle).replace(/'/g, "''")}')/items`
+        + `?$select=Id,${CONFIG.fields.core},${CONFIG.fields.rank},${CONFIG.fields.name},${CONFIG.fields.personLookup}/Title,${CONFIG.fields.personLookup}/EMail`
+        + `&$expand=${CONFIG.fields.personLookup}`
+        + `&$orderby=${CONFIG.fields.rank} asc, Id asc`;
+      const res = await fetch(url, { headers: { 'Accept': 'application/json;odata=nometadata' } });
+      if(!res.ok){ throw new Error(`SharePoint REST failed: ${res.status} ${res.statusText}`); }
+      return res.json();
+    }
+
+    function resolveName(item){
+      if(item[CONFIG.fields.name]) return item[CONFIG.fields.name];
+      const ppl = item[CONFIG.fields.personLookup];
+      return (ppl && (ppl.Title || ppl.EMail)) || '';
+    }
+
+    function placeItem(item){
+      const core = item[CONFIG.fields.core];
+      const rank = item[CONFIG.fields.rank];
+      if(!CONFIG.coreValues.includes(core)) return;
+      if(!(rank >= 1 && rank <= 5)) return;
+      const cell = document.querySelector(`.cell[data-core="${core}"][data-rank="${rank}"]`);
+      if(!cell) return;
+      const nameEl = cell.querySelector('.name');
+      const name = resolveName(item);
+      if(name){ nameEl.textContent = name; }
+      /* Intentionally DO NOT change avatar src -> LEGO stays */
+    }
+
+    (async function init(){
+      try{
+        const data = await fetchItems();
+        (data.value || data.d && data.d.results || []).forEach(placeItem);
+      }catch(err){
+        console.error(err);
+        const grid = document.getElementById('grid');
+        if(grid){
+          const note = document.createElement('div');
+          note.style.cssText = 'grid-column: 1 / -1; padding:10px; color:#b91c1c; background:#fef2f2; border:1px solid #fecaca; border-radius:8px; margin-top:8px;';
+          note.textContent = 'Could not load SharePoint data. Names were not loaded. The LEGO avatars still render.';
+          grid.appendChild(note);
+        }
+      }
+    })();
+  </script>
+</body>
+</html>
